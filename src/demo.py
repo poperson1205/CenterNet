@@ -6,6 +6,7 @@ import _init_paths
 
 import os
 import cv2
+import numpy as np
 
 from opts import opts
 from detectors.detector_factory import detector_factory
@@ -46,7 +47,13 @@ def demo(opt):
       image_names = [opt.demo]
     
     for (image_name) in image_names:
-      ret = detector.run(image_name)
+      if opt.task == 'ddd':
+        pku_baidu_calib = np.array([[2304.5479, 0, 1686.2379, 0.0],
+                          [0, 2305.8757, 1354.9849, 0.0],
+                          [0, 0, 1., 0.0]], dtype=np.float32)
+        ret = detector.run(image_name, meta=pku_baidu_calib)
+      else:
+        ret = detector.run(image_name)
       time_str = ''
       for stat in time_stats:
         time_str = time_str + '{} {:.3f}s |'.format(stat, ret[stat])
