@@ -215,6 +215,8 @@ class Debugger(object):
   def show_all_imgs(self, pause=False, time=0):
     if not self.ipynb:
       for i, v in self.imgs.items():
+        cv2.namedWindow('{}'.format(i), cv2.WINDOW_NORMAL)
+        cv2.resizeWindow('{}'.format(i), 1000, 800)
         cv2.imshow('{}'.format(i), v)
       if cv2.waitKey(0 if pause else 1) == 27:
         import sys
