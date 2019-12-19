@@ -51,7 +51,8 @@ def demo(opt):
         pku_baidu_calib = np.array([[2304.5479, 0, 1686.2379, 0.0],
                           [0, 2305.8757, 1354.9849, 0.0],
                           [0, 0, 1., 0.0]], dtype=np.float32)
-        ret = detector.run(image_name, meta=pku_baidu_calib)
+        mask_name = image_name.replace('images', 'masks', 1)
+        ret = detector.run(image_name, {'calib': pku_baidu_calib, 'mask': mask_name})
       else:
         ret = detector.run(image_name)
       time_str = ''
