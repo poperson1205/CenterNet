@@ -17,14 +17,16 @@ dataset_factory = {
   'coco': COCO,
   'pascal': PascalVOC,
   'kitti': KITTI,
-  'coco_hp': COCOHP
+  'coco_hp': COCOHP,
+  # 'pku': PkuDataset,
 }
 
 _sample_factory = {
   'exdet': EXDetDataset,
   'ctdet': CTDetDataset,
   'ddd': DddDataset,
-  'multi_pose': MultiPoseDataset
+  'multi_pose': MultiPoseDataset,
+  # 'pku': PkuSample
 }
 
 
