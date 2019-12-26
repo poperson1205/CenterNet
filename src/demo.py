@@ -9,6 +9,7 @@ import cv2
 import numpy as np
 
 from opts import opts
+from datasets.dataset_factory import dataset_factory
 from detectors.detector_factory import detector_factory
 
 image_ext = ['jpg', 'jpeg', 'png', 'webp']
@@ -18,6 +19,11 @@ time_stats = ['tot', 'load', 'pre', 'net', 'dec', 'post', 'merge']
 def demo(opt):
   os.environ['CUDA_VISIBLE_DEVICES'] = opt.gpus_str
   opt.debug = max(opt.debug, 1)
+
+  Dataset = dataset_factory[opt.dataset]
+  opt = opts().update_dataset_info_and_set_heads(opt, Dataset)
+  print(opt)
+
   Detector = detector_factory[opt.task]
   detector = Detector(opt)
 
@@ -60,5 +66,5 @@ def demo(opt):
         time_str = time_str + '{} {:.3f}s |'.format(stat, ret[stat])
       print(time_str)
 if __name__ == '__main__':
-  opt = opts().init()
+  opt = opts().parse()
   demo(opt)
