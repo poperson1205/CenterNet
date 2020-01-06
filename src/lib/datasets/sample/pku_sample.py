@@ -70,7 +70,7 @@ class PkuSample(data.Dataset):
     for k in range(num_objs):
         ann = anns[k]
 
-        model_type = ann['bbox']
+        model_type = ann['model_type']
         yaw = ann['yaw']
         pitch = ann['pitch']
         roll = ann['roll']

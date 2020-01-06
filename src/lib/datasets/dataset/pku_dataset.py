@@ -22,7 +22,8 @@ class PkuDataset(data.Dataset):
 
   def __init__(self, opt, split):
     super(PkuDataset, self).__init__()
-    self.data_dir = os.path.join(opt.data_dir, 'pku')
+    # self.data_dir = os.path.join(opt.data_dir, 'pku')
+    self.data_dir = '/workspace/code/pku-autonomous-driving/data'
     self.img_dir = os.path.join(self.data_dir, 'train_images')
     if opt.trainval:
       split = 'trainval' if split == 'train' else 'test'
@@ -56,36 +57,32 @@ class PkuDataset(data.Dataset):
 
     print('Loaded {} {} samples'.format(split, self.num_samples))
 
-  def __len__(self):
-    return self.num_samples
-
   def _to_float(self, x):
     return float("{:.2f}".format(x))
 
   def convert_eval_format(self, all_bboxes):
-    pass
+    detections = [[[] for __ in range(self.num_samples)] \
+                  for _ in range(self.num_classes + 1)]
+    for i in range(self.num_samples):
+      img_id = self.images[i]
+      for j in range(1, self.num_classes + 1):
+        if isinstance(all_bboxes[img_id][j], np.ndarray):
+          detections[j][i] = all_bboxes[img_id][j].tolist()
+        else:
+          detections[j][i] = all_bboxes[img_id][j]
+    return detections
+
+  def __len__(self):
+    return self.num_samples
 
   def save_results(self, results, save_dir):
-    pass
-    # results_dir = os.path.join(save_dir, 'results')
-    # if not os.path.exists(results_dir):
-    #   os.mkdir(results_dir)
-    # for img_id in results.keys():
-    #   out_path = os.path.join(results_dir, '{:06d}.txt'.format(img_id))
-    #   f = open(out_path, 'w')
-    #   for cls_ind in results[img_id]:
-    #     for j in range(len(results[img_id][cls_ind])):
-    #       class_name = self.class_name[cls_ind]
-    #       f.write('{} 0.0 0'.format(class_name))
-    #       for i in range(len(results[img_id][cls_ind][j])):
-    #         f.write(' {:.2f}'.format(results[img_id][cls_ind][j][i]))
-    #       f.write('\n')
-    #   f.close()
+    json.dump(self.convert_eval_format(results), 
+              open('{}/results.json'.format(save_dir), 'w'))
 
   def run_eval(self, results, save_dir):
-    pass
-    # self.save_results(results, save_dir)
-    # os.system('./tools/kitti_eval/evaluate_object_3d_offline ' + \
-    #           '../data/kitti/training/label_val ' + \
-    #           '{}/results/'.format(save_dir))
-    
+    # result_json = os.path.join(save_dir, "results.json")
+    # detections  = self.convert_eval_format(results)
+    # json.dump(detections, open(result_json, "w"))
+    self.save_results(results, save_dir)
+    os.system('python tools/reval.py ' + \
+              '{}/results.json'.format(save_dir))

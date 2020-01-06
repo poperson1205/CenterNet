@@ -92,5 +92,11 @@ class CtdetDetector(BaseDetector):
     for j in range(1, self.num_classes + 1):
       for bbox in results[j]:
         if bbox[4] > self.opt.vis_thresh:
+          cx = 0.5 * (bbox[0] + bbox[2])
+          cy = 0.5 * (bbox[1] + bbox[3])
+          bbox[0] = cx - 2
+          bbox[1] = cy - 2
+          bbox[2] = cx + 2
+          bbox[3] = cy + 2
           debugger.add_coco_bbox(bbox[:4], j - 1, bbox[4], img_id='ctdet')
     debugger.show_all_imgs(pause=self.pause)
