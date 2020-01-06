@@ -44,33 +44,35 @@ def get_images_and_annotations(df):
                 }
     
     predictions = prediction_string[:-1].split(' ')
-    model_type = int(predictions[0])
-    yaw = float(predictions[1])
-    pitch = float(predictions[2])
-    roll = float(predictions[3])
-    x = float(predictions[4])
-    y = float(predictions[5])
-    z = float(predictions[6])
-    annotation = {
-      'image_id': image_id,
-      'id': idx,
-      'model_type': model_type,
-      'yaw': yaw,
-      'pitch': pitch,
-      'roll': roll,
-      'x': x,
-      'y': y,
-      'z': z
-    }
+    for i in range(0, int(len(predictions)/7)):
+      model_type = int(predictions[i*7])
+      yaw = float(predictions[i*7+1])
+      pitch = float(predictions[i*7+2])
+      roll = float(predictions[i*7+3])
+      x = float(predictions[i*7+4])
+      y = float(predictions[i*7+5])
+      z = float(predictions[i*7+6])
+      annotation = {
+        'image_id': idx,
+        'id': int(len(annotations) + 1),
+        'category_id': 1,
+        'model_type': model_type,
+        'yaw': yaw,
+        'pitch': pitch,
+        'roll': roll,
+        'x': x,
+        'y': y,
+        'z': z
+      }
 
-    if DEBUG:
-      image = cv2.imread(PATH + 'train_images/' + image_info['file_name'])
-      image = cv2.resize(image, (600, 600))
-      cv2.imshow('image', image)
-      cv2.waitKey()
+      if DEBUG:
+        image = cv2.imread(PATH + 'train_images/' + image_info['file_name'])
+        image = cv2.resize(image, (600, 600))
+        cv2.imshow('image', image)
+        cv2.waitKey()
 
-    images.append(image_info)
-    annotations.append(annotation)
+      images.append(image_info)
+      annotations.append(annotation)
 
   return images, annotations
   
