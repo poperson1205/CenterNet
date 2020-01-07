@@ -6,7 +6,7 @@ import cv2
 from math import sin, cos
 import car_models
 
-DEBUG = True
+DEBUG = False
 
 PATH = '/workspace/code/pku-autonomous-driving/data/'
 
@@ -28,13 +28,46 @@ def euler_to_Rot(yaw, pitch, roll):
                   [0, 0, 1]])
     return np.dot(Y, np.dot(P, R))
 
+def compute_bbox(model_type, yaw, pitch, roll, x, y, z):
+  # Load 3D Model
+  car_name = car_models.car_id2name[model_type].name
+  with open(PATH + 'car_models_json/{0}.json'.format(car_name)) as json_file:
+    data = json.load(json_file)
+  vertices = np.array(data['vertices'])
+  vertices[:, 1] = -vertices[:, 1]
+  triangles = np.array(data['faces']) - 1
+
+  yaw, pitch, roll, x, y, z = [float(x) for x in [yaw, pitch, roll, x, y, z]]
+  # I think the pitch and yaw should be exchanged
+  yaw, pitch, roll = -pitch, -yaw, -roll
+  Rt = np.eye(4)
+  t = np.array([x, y, z])
+  Rt[:3, 3] = t
+  Rt[:3, :3] = euler_to_Rot(yaw, pitch, roll).T
+  Rt = Rt[:3, :]
+  P = np.ones((vertices.shape[0],vertices.shape[1]+1))
+  P[:, :-1] = vertices
+  P = P.T
+  img_cor_points = np.dot(calib[:, :3], np.dot(Rt, P))
+  img_cor_points = img_cor_points.T
+  img_cor_points[:, 0] /= img_cor_points[:, 2]
+  img_cor_points[:, 1] /= img_cor_points[:, 2]
+
+  # Compute bounding box (2d)
+  bbox = [float(img_cor_points[:, 0].min()), float(img_cor_points[:, 1].min()), float(img_cor_points[:, 0].max()), float(img_cor_points[:, 1].max())]
+  return bbox
+
+def _bbox_to_coco_bbox(bbox):
+  return [(bbox[0]), (bbox[1]),
+          (bbox[2] - bbox[0]), (bbox[3] - bbox[1])]
+
 def draw_obj(image, vertices, triangles):
   for t in triangles:
     coord = np.array([vertices[t[0]][:2], vertices[t[1]][:2], vertices[t[2]][:2]], dtype=np.int32)
     cv2.polylines(image, np.int32([coord]), 1, (0,0,255))
 
 def draw_bbox(image, bbox):
-  bbox = bbox.astype(np.int32)
+  bbox = [int(t) for t in bbox]
   cv2.rectangle(image, (bbox[0], bbox[1]), (bbox[2], bbox[3]), (255, 0, 0), 10)
 
 # Split train/val
@@ -55,7 +88,12 @@ def get_images_and_annotations(df):
   images = []
   annotations = []
   
+  current_count = 0
+  total_count = df.shape[0]
   for row in df.iterrows():
+    print("progress: {0}".format(float(current_count) / float(total_count) * 100))
+    current_count += 1
+
     idx = row[0]
     image_id = row[1]['ImageId']
     prediction_string = row[1]['PredictionString']
@@ -74,9 +112,12 @@ def get_images_and_annotations(df):
       x = float(predictions[i*7+4])
       y = float(predictions[i*7+5])
       z = float(predictions[i*7+6])
+      bbox = compute_bbox(model_type, yaw, pitch, roll, x, y, z)
+
       annotation = {
         'image_id': idx,
         'id': int(len(annotations) + 1),
+        'bbox': _bbox_to_coco_bbox(bbox),
         'category_id': 1,
         'model_type': model_type,
         'yaw': yaw,
@@ -90,38 +131,7 @@ def get_images_and_annotations(df):
       if DEBUG:
         image = cv2.imread(PATH + 'train_images/' + image_info['file_name'])
 
-        # Load 3D Model
-        car_name = car_models.car_id2name[model_type].name
-        with open(PATH + 'car_models_json/{0}.json'.format(car_name)) as json_file:
-          data = json.load(json_file)
-        vertices = np.array(data['vertices'])
-        vertices[:, 1] = -vertices[:, 1]
-        triangles = np.array(data['faces']) - 1
-
         overlay = np.zeros_like(image)
-        yaw, pitch, roll, x, y, z = [float(x) for x in [yaw, pitch, roll, x, y, z]]
-        # I think the pitch and yaw should be exchanged
-        yaw, pitch, roll = -pitch, -yaw, -roll
-        Rt = np.eye(4)
-        t = np.array([x, y, z])
-        Rt[:3, 3] = t
-        Rt[:3, :3] = euler_to_Rot(yaw, pitch, roll).T
-        Rt = Rt[:3, :]
-        P = np.ones((vertices.shape[0],vertices.shape[1]+1))
-        P[:, :-1] = vertices
-        P = P.T
-        img_cor_points = np.dot(calib[:, :3], np.dot(Rt, P))
-        img_cor_points = img_cor_points.T
-        img_cor_points[:, 0] /= img_cor_points[:, 2]
-        img_cor_points[:, 1] /= img_cor_points[:, 2]
-        draw_obj(overlay, img_cor_points, triangles)
-
-        # Compute bounding box (2d)
-        bbox = np.zeros(4, dtype=np.float32)
-        bbox[0] = img_cor_points[:, 0].min()
-        bbox[1] = img_cor_points[:, 1].min()
-        bbox[2] = img_cor_points[:, 0].max()
-        bbox[3] = img_cor_points[:, 1].max()
         draw_bbox(overlay, bbox)
 
         alpha = .5
