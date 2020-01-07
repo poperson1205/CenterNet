@@ -6,7 +6,7 @@ import cv2
 from math import sin, cos
 import car_models
 
-DEBUG = False
+DEBUG = True
 
 PATH = '/workspace/code/pku-autonomous-driving/data/'
 
@@ -28,15 +28,15 @@ def euler_to_Rot(yaw, pitch, roll):
                   [0, 0, 1]])
     return np.dot(Y, np.dot(P, R))
 
-def compute_bbox(model_type, yaw, pitch, roll, x, y, z):
-  # Load 3D Model
-  car_name = car_models.car_id2name[model_type].name
-  with open(PATH + 'car_models_json/{0}.json'.format(car_name)) as json_file:
+def read_json_mesh(path):
+  with open(path) as json_file:
     data = json.load(json_file)
   vertices = np.array(data['vertices'])
   vertices[:, 1] = -vertices[:, 1]
   triangles = np.array(data['faces']) - 1
+  return vertices, triangles
 
+def compute_bbox(vertices, yaw, pitch, roll, x, y, z):
   yaw, pitch, roll, x, y, z = [float(x) for x in [yaw, pitch, roll, x, y, z]]
   # I think the pitch and yaw should be exchanged
   yaw, pitch, roll = -pitch, -yaw, -roll
@@ -112,7 +112,11 @@ def get_images_and_annotations(df):
       x = float(predictions[i*7+4])
       y = float(predictions[i*7+5])
       z = float(predictions[i*7+6])
-      bbox = compute_bbox(model_type, yaw, pitch, roll, x, y, z)
+
+      # Load 3D Model
+      car_name = car_models.car_id2name[model_type].name
+      vertices, triangles = read_json_mesh(PATH + 'car_models_json/{0}.json'.format(car_name))
+      bbox = compute_bbox(vertices, yaw, pitch, roll, x, y, z)
 
       annotation = {
         'image_id': idx,
@@ -132,13 +136,14 @@ def get_images_and_annotations(df):
         image = cv2.imread(PATH + 'train_images/' + image_info['file_name'])
 
         overlay = np.zeros_like(image)
+        draw_obj(overlay, vertices, triangles)
         draw_bbox(overlay, bbox)
 
         alpha = .5
         image = np.array(image)
         cv2.addWeighted(overlay, alpha, image, 1 - alpha, 0, image)
 
-        image = cv2.resize(image, (600, 600))
+        image = cv2.resize(image, (384, 384))
         cv2.imshow('image', image)
         cv2.waitKey()
 
