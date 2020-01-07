@@ -5,6 +5,7 @@ import numpy as np
 import cv2
 from math import sin, cos
 import car_models
+import json_mesh_parser
 
 DEBUG = True
 
@@ -27,14 +28,6 @@ def euler_to_Rot(yaw, pitch, roll):
                   [sin(roll), cos(roll), 0],
                   [0, 0, 1]])
     return np.dot(Y, np.dot(P, R))
-
-def read_json_mesh(path):
-  with open(path) as json_file:
-    data = json.load(json_file)
-  vertices = np.array(data['vertices'])
-  vertices[:, 1] = -vertices[:, 1]
-  triangles = np.array(data['faces']) - 1
-  return vertices, triangles
 
 def compute_bbox(vertices, yaw, pitch, roll, x, y, z):
   yaw, pitch, roll, x, y, z = [float(x) for x in [yaw, pitch, roll, x, y, z]]
@@ -115,7 +108,7 @@ def get_images_and_annotations(df):
 
       # Load 3D Model
       car_name = car_models.car_id2name[model_type].name
-      vertices, triangles = read_json_mesh(PATH + 'car_models_json/{0}.json'.format(car_name))
+      vertices, triangles = json_mesh_parser.get_mesh(PATH + 'car_models_json/{0}.json'.format(car_name))
       bbox = compute_bbox(vertices, yaw, pitch, roll, x, y, z)
 
       annotation = {
