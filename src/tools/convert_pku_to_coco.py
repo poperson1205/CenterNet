@@ -108,14 +108,16 @@ def get_images_and_annotations(df):
 
       # Load 3D Model
       car_name = car_models.car_id2name[model_type].name
+      category_id = car_models.car_id2name[model_type].categoryId   # 0: 2x, 1: 3x, 2: SUV
       vertices, triangles = json_mesh_parser.get_mesh(PATH + 'car_models_json/{0}.json'.format(car_name))
+
       bbox = compute_bbox(vertices, yaw, pitch, roll, x, y, z)
 
       annotation = {
         'image_id': idx,
         'id': int(len(annotations) + 1),
         'bbox': _bbox_to_coco_bbox(bbox),
-        'category_id': 1,
+        'category_id': category_id,
         'model_type': model_type,
         'yaw': yaw,
         'pitch': pitch,
@@ -144,7 +146,7 @@ def get_images_and_annotations(df):
       annotations.append(annotation)
 
   return images, annotations
-  
+
 # Train set
 images_train, annotations_train = get_images_and_annotations(df_train)
 ret = {'images': images_train, 'annotations': annotations_train, "categories": get_cat_info()}
