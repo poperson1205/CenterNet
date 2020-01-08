@@ -11,5 +11,6 @@ train_factory = {
   'exdet': ExdetTrainer, 
   'ddd': DddTrainer,
   'ctdet': CtdetTrainer,
+  'ctdet_pku': CtdetTrainer,
   'multi_pose': MultiPoseTrainer, 
 }
