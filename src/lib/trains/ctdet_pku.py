@@ -11,7 +11,7 @@ from models.losses import L1Loss
 from models.decode import ctdet_pku_decode
 from models.utils import _sigmoid
 from utils.debugger import Debugger
-from utils.post_process import ctdet_post_process
+from utils.post_process import ctdet_pku_post_process
 from utils.oracle_utils import gen_oracle_map
 from .base_trainer import BaseTrainer
 
@@ -133,7 +133,7 @@ class CtdetPkuTrainer(BaseTrainer):
       output['hm'], output['wh'], reg=reg,
       cat_spec_wh=self.opt.cat_spec_wh, K=self.opt.K)
     dets = dets.detach().cpu().numpy().reshape(1, -1, dets.shape[2])
-    dets_out = ctdet_post_process(
+    dets_out = ctdet_pku_post_process(
       dets.copy(), batch['meta']['c'].cpu().numpy(),
       batch['meta']['s'].cpu().numpy(),
       output['hm'].shape[2], output['hm'].shape[3], output['hm'].shape[1])

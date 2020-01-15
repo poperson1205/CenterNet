@@ -16,7 +16,7 @@ except:
 from models.decode import ctdet_pku_decode
 from models.utils import flip_tensor
 from utils.image import get_affine_transform
-from utils.post_process import ctdet_post_process
+from utils.post_process import ctdet_pku_post_process
 from utils.debugger import Debugger
 
 from .base_detector import BaseDetector
@@ -48,11 +48,11 @@ class CtdetPkuDetector(BaseDetector):
   def post_process(self, dets, meta, scale=1):
     dets = dets.detach().cpu().numpy()
     dets = dets.reshape(1, -1, dets.shape[2])
-    dets = ctdet_post_process(
+    dets = ctdet_pku_post_process(
         dets.copy(), [meta['c']], [meta['s']],
         meta['out_height'], meta['out_width'], self.opt.num_classes)
     for j in range(1, self.num_classes + 1):
-      dets[0][j] = np.array(dets[0][j], dtype=np.float32).reshape(-1, 5)
+      dets[0][j] = np.array(dets[0][j], dtype=np.float32).reshape(-1, 12)
       dets[0][j][:, :4] /= scale
     return dets[0]
 
@@ -87,13 +87,18 @@ class CtdetPkuDetector(BaseDetector):
           debugger.add_coco_bbox(detection[i, k, :4], detection[i, k, -1],
                                  detection[i, k, 4], 
                                  img_id='out_pred_{:.1f}'.format(scale))
-          debugger.add_pku_bbox(detection[i, k, :4],
-                                img_id='out_pred_{:.1f}'.format(scale))
 
   def show_results(self, debugger, image, results):
+    calib = np.array([[2304.5479, 0, 1686.2379, 0.0],
+                      [0, 2305.8757, 1354.9849, 0.0],
+                      [0, 0, 1., 0.0]], dtype=np.float32)
     debugger.add_img(image, img_id='ctdet')
     for j in range(1, self.num_classes + 1):
       for bbox in results[j]:
         if bbox[4] > self.opt.vis_thresh:
           debugger.add_coco_bbox(bbox[:4], j - 1, bbox[4], img_id='ctdet')
+      for pose in results[j]:
+        if pose[4] > self.opt.vis_thresh:
+          debugger.add_pku(pose[5:11], calib, img_id='ctdet')
+
     debugger.show_all_imgs(pause=self.pause)

@@ -4,7 +4,7 @@ from __future__ import print_function
 
 import numpy as np
 import cv2
-from .ddd_utils import compute_box_3d, project_to_image, draw_box_3d
+from .ddd_utils import compute_box_3d, project_to_image, draw_box_3d, compute_box_3d_pku
 
 class Debugger(object):
   def __init__(self, ipynb=False, theme='black', 
@@ -201,14 +201,10 @@ class Debugger(object):
                       (points[e[1], 0], points[e[1], 1]), self.ec[j], 2,
                       lineType=cv2.LINE_AA)
 
-  def add_pku_bbox(self, bbox, img_id='default'):
-    bbox = np.array(bbox, dtype=np.int32)
-    bbox[0] = 0
-    bbox[1] = 0
-    bbox[2] = 200
-    bbox[3] = 200
-    cv2.rectangle(
-      self.imgs[img_id], (bbox[0], bbox[1]), (bbox[2], bbox[3]), (255, 0, 0), 2)
+  def add_pku(self, pose, calib, img_id='default'):
+    box_3d = compute_box_3d_pku(pose[3], pose[4], pose[5], pose[0], pose[1], pose[2])
+    box_2d = project_to_image(box_3d, calib)
+    draw_box_3d(self.imgs[img_id], box_2d)
 
   def add_points(self, points, img_id='default'):
     num_classes = len(points)

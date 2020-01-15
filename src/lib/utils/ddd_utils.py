@@ -4,6 +4,20 @@ from __future__ import print_function
 
 import numpy as np
 import cv2
+from math import sin, cos
+
+def euler_to_Rot(yaw, pitch, roll):
+    yaw, pitch, roll = -pitch, -yaw, -roll
+    Y = np.array([[cos(yaw), 0, sin(yaw)],
+                  [0, 1, 0],
+                  [-sin(yaw), 0, cos(yaw)]])
+    P = np.array([[1, 0, 0],
+                  [0, cos(pitch), -sin(pitch)],
+                  [0, sin(pitch), cos(pitch)]])
+    R = np.array([[cos(roll), -sin(roll), 0],
+                  [sin(roll), cos(roll), 0],
+                  [0, 0, 1]])
+    return np.dot(Y, np.dot(P, R))
 
 def compute_box_3d(dim, location, rotation_y):
   # dim: 3
@@ -21,6 +35,34 @@ def compute_box_3d(dim, location, rotation_y):
   corners_3d = np.dot(R, corners) 
   corners_3d = corners_3d + np.array(location, dtype=np.float32).reshape(3, 1)
   return corners_3d.transpose(1, 0)
+
+def compute_box_3d_pku(x, y, z, yaw, pitch, roll, size = 1.0):
+  box = np.zeros((8, 3), dtype=np.float32)
+
+  # Initialize box corners
+  box[0] = [-size, -size, -size]
+  box[1] = [+size, -size, -size]
+  box[2] = [+size, +size, -size]
+  box[3] = [-size, +size, -size]
+  box[4] = [-size, -size, +size]
+  box[5] = [+size, -size, +size]
+  box[6] = [+size, +size, +size]
+  box[7] = [-size, +size, +size]
+  
+  # Rotate coorners
+  Rt = np.eye(4, dtype=np.float32)
+  t = np.array([x, y, z])
+  Rt[:3, 3] = t
+  Rt[:3, :3] = euler_to_Rot(yaw, pitch, roll).T
+  Rt = Rt[:3, :]
+  P = np.ones((8, 4), dtype=np.float32)
+  P[:, :-1] = box
+  P = P.T
+
+  box = np.dot(Rt, P)
+  box = box.T
+
+  return box
 
 def project_to_image(pts_3d, P):
   # pts_3d: n x 3

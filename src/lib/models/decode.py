@@ -511,14 +511,14 @@ def ctdet_pku_decode(heat, wh, pose, reg=None, cat_spec_wh=False, K=100):
       xs = xs.view(batch, K, 1) + 0.5
       ys = ys.view(batch, K, 1) + 0.5
     wh = _transpose_and_gather_feat(wh, inds)
-    pose = _transpose_and_gather_feat(pose, inds)
-    pose = pose.view(batch, K, 6)
     if cat_spec_wh:
       wh = wh.view(batch, K, cat, 2)
       clses_ind = clses.view(batch, K, 1, 1).expand(batch, K, 1, 2).long()
       wh = wh.gather(2, clses_ind).view(batch, K, 2)
     else:
       wh = wh.view(batch, K, 2)
+    pose = _transpose_and_gather_feat(pose, inds)
+    pose = pose.view(batch, K, 6)
     clses  = clses.view(batch, K, 1).float()
     scores = scores.view(batch, K, 1)
     bboxes = torch.cat([xs - wh[..., 0:1] / 2, 
