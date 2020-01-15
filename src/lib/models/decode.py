@@ -512,7 +512,7 @@ def ctdet_pku_decode(heat, wh, pose, reg=None, cat_spec_wh=False, K=100):
       ys = ys.view(batch, K, 1) + 0.5
     wh = _transpose_and_gather_feat(wh, inds)
     pose = _transpose_and_gather_feat(pose, inds)
-    pose = pose.view(batch, K, 3)
+    pose = pose.view(batch, K, 6)
     if cat_spec_wh:
       wh = wh.view(batch, K, cat, 2)
       clses_ind = clses.view(batch, K, 1, 1).expand(batch, K, 1, 2).long()
