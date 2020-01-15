@@ -201,6 +201,15 @@ class Debugger(object):
                       (points[e[1], 0], points[e[1], 1]), self.ec[j], 2,
                       lineType=cv2.LINE_AA)
 
+  def add_pku_bbox(self, bbox, img_id='default'):
+    bbox = np.array(bbox, dtype=np.int32)
+    bbox[0] = 0
+    bbox[1] = 0
+    bbox[2] = 200
+    bbox[3] = 200
+    cv2.rectangle(
+      self.imgs[img_id], (bbox[0], bbox[1]), (bbox[2], bbox[3]), (255, 0, 0), 2)
+
   def add_points(self, points, img_id='default'):
     num_classes = len(points)
     # assert num_classes == len(self.colors)

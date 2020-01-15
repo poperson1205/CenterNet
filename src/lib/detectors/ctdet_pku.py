@@ -87,6 +87,8 @@ class CtdetPkuDetector(BaseDetector):
           debugger.add_coco_bbox(detection[i, k, :4], detection[i, k, -1],
                                  detection[i, k, 4], 
                                  img_id='out_pred_{:.1f}'.format(scale))
+          debugger.add_pku_bbox(detection[i, k, :4],
+                                img_id='out_pred_{:.1f}'.format(scale))
 
   def show_results(self, debugger, image, results):
     debugger.add_img(image, img_id='ctdet')
