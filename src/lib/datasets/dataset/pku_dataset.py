@@ -25,13 +25,9 @@ class PkuDataset(data.Dataset):
     # self.data_dir = os.path.join(opt.data_dir, 'pku')
     self.data_dir = '/workspace/code/pku-autonomous-driving/data'
     self.img_dir = os.path.join(self.data_dir, 'train_images')
-    if opt.trainval:
-      split = 'trainval' if split == 'train' else 'test'
-      self.img_dir = os.path.join(self.data_dir, 'images', split)
-      self.annot_path = os.path.join(
-        self.data_dir, 'annotations', 'kitti_{}.json').format(split)
-    else:
-      self.annot_path = os.path.join(self.data_dir, '{}.json'.format(split))
+    self.mask_dir = os.path.join(self.data_dir, 'train_masks')
+    # self.annot_path = os.path.join(self.data_dir, 'trainval.json')
+    self.annot_path = os.path.join(self.data_dir, 'train.json')
 
     self.max_objs = 50
     self.class_name = [

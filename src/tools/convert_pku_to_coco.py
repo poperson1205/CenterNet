@@ -161,4 +161,4 @@ json.dump(ret, open(PATH + 'val.json', 'w'))
 images_train_val = images_train + images_val
 annotations_train_val = annotations_train + annotations_val
 ret = {'images': images_train_val, 'annotations': annotations_train_val, "categories": get_cat_info()}
-json.dump(ret, open(PATH + 'train_val.json', 'w'))
+json.dump(ret, open(PATH + 'trainval.json', 'w'))

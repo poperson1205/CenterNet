@@ -25,7 +25,7 @@ class CtdetPkuDetector(BaseDetector):
   def __init__(self, opt):
     super(CtdetPkuDetector, self).__init__(opt)
   
-  def process(self, images, return_time=False):
+  def process(self, images, masks=None, return_time=False):
     with torch.no_grad():
       output = self.model(images)[-1]
       hm = output['hm'].sigmoid_()

@@ -30,6 +30,7 @@ class CTDetPkuDataset(data.Dataset):
     img_id = self.images[index]
     file_name = self.coco.loadImgs(ids=[img_id])[0]['file_name']
     img_path = os.path.join(self.img_dir, file_name)
+    mask_path = os.path.join(self.mask_dir, file_name)
     ann_ids = self.coco.getAnnIds(imgIds=[img_id])
     anns = self.coco.loadAnns(ids=ann_ids)
     num_objs = min(len(anns), self.max_objs)
@@ -58,6 +59,7 @@ class CTDetPkuDataset(data.Dataset):
         sf = self.opt.scale
         cf = self.opt.shift
         c[0] += s * np.clip(np.random.randn()*cf, -2*cf, 2*cf)
+        
         c[1] += s * np.clip(np.random.randn()*cf, -2*cf, 2*cf)
         s = s * np.clip(np.random.randn()*sf + 1, 1 - sf, 1 + sf)
       
@@ -83,6 +85,14 @@ class CTDetPkuDataset(data.Dataset):
     num_classes = self.num_classes
     trans_output = get_affine_transform(c, s, 0, [output_w, output_h])
 
+    if (os.path.isfile(mask_path)):
+      mask_img = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
+      mask = cv2.warpAffine(mask_img, trans_output, (output_w, output_h))
+      mask = (mask.astype(np.float32) / 255.)
+      mask = np.expand_dims(mask, axis=0)
+    else:
+      mask = np.zeros((1, output_h, output_w), dtype=np.float32)
+    
     hm = np.zeros((num_classes, output_h, output_w), dtype=np.float32)
     wh = np.zeros((self.max_objs, 2), dtype=np.float32)
     dense_wh = np.zeros((2, output_h, output_w), dtype=np.float32)
@@ -100,7 +110,8 @@ class CTDetPkuDataset(data.Dataset):
     for k in range(num_objs):
       ann = anns[k]
       bbox = self._coco_box_to_bbox(ann['bbox'])
-      cls_id = int(self.cat_ids[ann['category_id']])
+      # cls_id = int(self.cat_ids[ann['category_id']])
+      cls_id = 0
       model_type = ann['model_type']
       yaw = ann['yaw']
       pitch = ann['pitch']
@@ -135,7 +146,7 @@ class CTDetPkuDataset(data.Dataset):
         gt_det.append([ct[0] - w / 2, ct[1] - h / 2, 
                        ct[0] + w / 2, ct[1] + h / 2, 1, cls_id])
     
-    ret = {'input': inp, 'hm': hm, 'reg_mask': reg_mask, 'ind': ind, 'wh': wh, 'pose': pose}
+    ret = {'input': inp, 'mask': mask, 'hm': hm, 'reg_mask': reg_mask, 'ind': ind, 'wh': wh, 'pose': pose}
     if self.opt.dense_wh:
       hm_a = hm.max(axis=0, keepdims=True)
       dense_wh_mask = np.concatenate([hm_a, hm_a], axis=0)
