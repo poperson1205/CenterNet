@@ -33,27 +33,30 @@ def submit(opt):
   DATA_PATH = '/workspace/code/pku-autonomous-driving/data/'
   # TEST_IMAGE_DIR = DATA_PATH + 'validation_images/'
   TEST_IMAGE_DIR = DATA_PATH + 'test_images/'
+  TEST_MASK_DIR = DATA_PATH + 'test_masks/'
 
   if os.path.isdir(TEST_IMAGE_DIR) is False:
     return
 
   # Parse image paths from input directory
   image_names = []
+  mask_names = []
   ls = os.listdir(TEST_IMAGE_DIR)
   for file_name in sorted(ls):
       ext = file_name[file_name.rfind('.') + 1:].lower()
       if ext in image_ext:
           image_names.append(os.path.join(TEST_IMAGE_DIR, file_name))
+          mask_names.append(os.path.join(TEST_MASK_DIR, file_name))
   
   # Predict
   list_image_id = []
   list_prediction_string = []
-  for (image_name) in image_names:
+  for (image_name, mask_name) in zip(image_names, mask_names):
       print('Progress: {} / {}'.format(len(list_image_id), len(image_names)))
 
       image_id = os.path.basename(image_name).rsplit('.', 1)[0]
 
-      dets = detector.run(image_name)['results']
+      dets = detector.run(image_name, {'mask_path': mask_name})['results']
 
       prediction_string = ''
       for cat in dets:

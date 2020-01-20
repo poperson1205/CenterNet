@@ -60,7 +60,8 @@ def demo(opt):
         mask_name = image_name.replace('images', 'masks', 1)
         ret = detector.run(image_name, {'calib': pku_baidu_calib, 'mask': mask_name})
       else:
-        ret = detector.run(image_name)
+        mask_name = image_name.replace('images', 'masks', 1)
+        ret = detector.run(image_name, {'mask_path': mask_name})
       time_str = ''
       for stat in time_stats:
         time_str = time_str + '{} {:.3f}s |'.format(stat, ret[stat])
