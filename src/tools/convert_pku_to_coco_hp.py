@@ -7,16 +7,6 @@ from math import sin, cos
 import car_models
 import json_mesh_parser
 
-DEBUG = True
-
-PATH = '/workspace/code/pku-autonomous-driving/data/'
-
-# Load data
-df = pd.read_csv(PATH + 'train.csv')
-calib = np.array([[2304.5479, 0, 1686.2379, 0.0],
-                  [0, 2305.8757, 1354.9849, 0.0],
-                  [0, 0, 1., 0.0]], dtype=np.float32)
-
 def euler_to_Rot(yaw, pitch, roll):
     Y = np.array([[cos(yaw), 0, sin(yaw)],
                   [0, 1, 0],
@@ -62,9 +52,6 @@ def draw_obj(image, vertices, triangles):
 def draw_bbox(image, bbox):
   bbox = [int(t) for t in bbox]
   cv2.rectangle(image, (bbox[0], bbox[1]), (bbox[2], bbox[3]), (255, 0, 0), 10)
-
-# Split train/val
-df_train, df_val = train_test_split(df, test_size=0.01, random_state=42)
 
 # Make dictionary
 def get_cat_info():
@@ -147,18 +134,32 @@ def get_images_and_annotations(df):
 
   return images, annotations
 
-# Train set
-images_train, annotations_train = get_images_and_annotations(df_train)
-ret = {'images': images_train, 'annotations': annotations_train, "categories": get_cat_info()}
-json.dump(ret, open(PATH + 'train.json', 'w'))
+if __name__ == '__main__':
+  DEBUG = True
 
-# Validation set
-images_val, annotations_val = get_images_and_annotations(df_val)
-ret = {'images': images_val, 'annotations': annotations_val, "categories": get_cat_info()}
-json.dump(ret, open(PATH + 'val.json', 'w'))
+  PATH = '/workspace/code/pku-autonomous-driving/data/'
 
-# TrainVal set
-images_train_val = images_train + images_val
-annotations_train_val = annotations_train + annotations_val
-ret = {'images': images_train_val, 'annotations': annotations_train_val, "categories": get_cat_info()}
-json.dump(ret, open(PATH + 'trainval.json', 'w'))
+  # Load data
+  df = pd.read_csv(PATH + 'train.csv')
+  calib = np.array([[2304.5479, 0, 1686.2379, 0.0],
+                    [0, 2305.8757, 1354.9849, 0.0],
+                    [0, 0, 1., 0.0]], dtype=np.float32)
+
+  # Split train/val
+  df_train, df_val = train_test_split(df, test_size=0.01, random_state=42)
+
+  # Train set
+  images_train, annotations_train = get_images_and_annotations(df_train)
+  ret = {'images': images_train, 'annotations': annotations_train, "categories": get_cat_info()}
+  json.dump(ret, open(PATH + 'train.json', 'w'))
+
+  # Validation set
+  images_val, annotations_val = get_images_and_annotations(df_val)
+  ret = {'images': images_val, 'annotations': annotations_val, "categories": get_cat_info()}
+  json.dump(ret, open(PATH + 'val.json', 'w'))
+
+  # TrainVal set
+  images_train_val = images_train + images_val
+  annotations_train_val = annotations_train + annotations_val
+  ret = {'images': images_train_val, 'annotations': annotations_train_val, "categories": get_cat_info()}
+  json.dump(ret, open(PATH + 'trainval.json', 'w'))
