@@ -24,7 +24,7 @@ from .base_detector import BaseDetector
 class MultiPoseDetector(BaseDetector):
   def __init__(self, opt):
     super(MultiPoseDetector, self).__init__(opt)
-    self.flip_idx = opt.flip_idx
+    # self.flip_idx = opt.flip_idx
 
   def process(self, images, return_time=False):
     with torch.no_grad():
@@ -65,7 +65,7 @@ class MultiPoseDetector(BaseDetector):
       dets.copy(), [meta['c']], [meta['s']],
       meta['out_height'], meta['out_width'])
     for j in range(1, self.num_classes + 1):
-      dets[0][j] = np.array(dets[0][j], dtype=np.float32).reshape(-1, 39)
+      dets[0][j] = np.array(dets[0][j], dtype=np.float32).reshape(-1, 31)
       # import pdb; pdb.set_trace()
       dets[0][j][:, :4] /= scale
       dets[0][j][:, 5:] /= scale

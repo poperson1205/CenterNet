@@ -13,6 +13,7 @@ from .dataset.pascal import PascalVOC
 from .dataset.kitti import KITTI
 from .dataset.coco_hp import COCOHP
 from .dataset.pku_dataset import PkuDataset
+from .dataset.coco_hp_pku import COCOHPPKU
 
 
 dataset_factory = {
@@ -21,6 +22,7 @@ dataset_factory = {
   'kitti': KITTI,
   'coco_hp': COCOHP,
   'pku': PkuDataset,
+  'coco_hp_pku': COCOHPPKU
 }
 
 _sample_factory = {
@@ -29,6 +31,7 @@ _sample_factory = {
   'ctdet_pku': CTDetPkuDataset,
   'ddd': DddDataset,
   'multi_pose': MultiPoseDataset,
+  'multi_pose_pku': MultiPoseDataset
 }
 
 

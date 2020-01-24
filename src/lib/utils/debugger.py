@@ -47,6 +47,19 @@ class Debugger(object):
       self.names = pascal_class_name
     elif num_classes == 1 or dataset == 'pku':
       self.names = pku_class_name
+    elif num_classes == 1 or dataset == 'coco_hp_pku':
+      self.names = pku_class_name
+      self.num_class = 1
+      self.num_joints = 13
+      self.edges = [[0, 1], [1, 2], [2, 3], [3, 0], [4, 5], [5, 6], [6, 7], [7, 4], [8, 9], [9, 10], [10, 11], [11, 8]]
+      self.ec = [(255, 0, 0), (0, 0, 255), (255, 0, 0), (0, 0, 255), 
+                 (255, 0, 0), (0, 0, 255), (255, 0, 255),
+                 (255, 0, 0), (255, 0, 0), (0, 0, 255), (0, 0, 255),
+                 (255, 0, 0), (0, 0, 255)]
+      self.colors_hp = [(255, 0, 255), (255, 0, 0), (0, 0, 255), 
+        (255, 0, 0), (0, 0, 255), (255, 0, 0), (0, 0, 255),
+        (255, 0, 0), (0, 0, 255), (255, 0, 0), (0, 0, 255),
+        (255, 0, 0), (0, 0, 255)]
     elif dataset == 'gta':
       self.names = gta_class_name
       self.focal_length = 935.3074360871937

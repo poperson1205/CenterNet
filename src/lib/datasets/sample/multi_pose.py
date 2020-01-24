@@ -104,7 +104,8 @@ class MultiPoseDataset(data.Dataset):
     for k in range(num_objs):
       ann = anns[k]
       bbox = self._coco_box_to_bbox(ann['bbox'])
-      cls_id = int(ann['category_id']) - 1
+      # cls_id = int(ann['category_id']) - 1
+      cls_id = 0
       pts = np.array(ann['keypoints'], np.float32).reshape(num_joints, 3)
       if flipped:
         bbox[[0, 2]] = width - bbox[[2, 0]] - 1
