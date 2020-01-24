@@ -6,6 +6,7 @@ import cv2
 from math import sin, cos
 import car_models
 import json_mesh_parser
+import pp_keypoint_parser
 
 def euler_to_Rot(yaw, pitch, roll):
     Y = np.array([[cos(yaw), 0, sin(yaw)],
@@ -19,9 +20,8 @@ def euler_to_Rot(yaw, pitch, roll):
                   [0, 0, 1]])
     return np.dot(Y, np.dot(P, R))
 
-def compute_bbox(vertices, yaw, pitch, roll, x, y, z):
+def project_vertices(vertices, yaw, pitch, roll, x, y, z):
   yaw, pitch, roll, x, y, z = [float(x) for x in [yaw, pitch, roll, x, y, z]]
-  # I think the pitch and yaw should be exchanged
   yaw, pitch, roll = -pitch, -yaw, -roll
   Rt = np.eye(4)
   t = np.array([x, y, z])
@@ -35,8 +35,13 @@ def compute_bbox(vertices, yaw, pitch, roll, x, y, z):
   img_cor_points = img_cor_points.T
   img_cor_points[:, 0] /= img_cor_points[:, 2]
   img_cor_points[:, 1] /= img_cor_points[:, 2]
+  return img_cor_points[:, :2]
 
-  # Compute bounding box (2d)
+def compute_bbox(vertices, yaw, pitch, roll, x, y, z):
+  # Project vertices
+  img_cor_points = project_vertices(vertices, yaw, pitch, roll, x, y, z)
+
+  # Compute bounding box
   bbox = [float(img_cor_points[:, 0].min()), float(img_cor_points[:, 1].min()), float(img_cor_points[:, 0].max()), float(img_cor_points[:, 1].max())]
   return bbox
 
@@ -53,6 +58,10 @@ def draw_bbox(image, bbox):
   bbox = [int(t) for t in bbox]
   cv2.rectangle(image, (bbox[0], bbox[1]), (bbox[2], bbox[3]), (255, 0, 0), 10)
 
+def draw_points(image, points):
+  for p in points:
+    cv2.circle(image, (int(p[0]), int(p[1])), 3, (0, 0, 255), thickness = -1)
+
 # Make dictionary
 def get_cat_info():
   cat_info = []
@@ -60,7 +69,13 @@ def get_cat_info():
   cats = ['Car']
   cat_ids = {cat: i + 1 for i, cat in enumerate(cats)}
   for i, cat in enumerate(cats):
-    cat_info.append({'name': cat, 'id': i + 1})
+    cat_info.append({
+      'supercategory': 'car',
+      'id': i + 1,
+      'name': cat,
+      'keypoints': ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'],
+      'skeleton': [[0, 1], [1, 2], [2, 3], [3, 0], [4, 5], [5, 6], [6, 7], [7, 4], [8, 9], [9, 10], [10, 11], [11, 8]]
+      })
 
   return cat_info
 
@@ -68,6 +83,7 @@ def get_images_and_annotations(df):
   images = []
   annotations = []
   
+  # Parse CSV line-by-line
   current_count = 0
   total_count = df.shape[0]
   for row in df.iterrows():
@@ -98,7 +114,18 @@ def get_images_and_annotations(df):
       category_id = car_models.car_id2name[model_type].categoryId   # 0: 2x, 1: 3x, 2: SUV
       vertices, triangles = json_mesh_parser.get_mesh(PATH + 'car_models_json/{0}.json'.format(car_name))
 
+      # Compute bounding box
       bbox = compute_bbox(vertices, yaw, pitch, roll, x, y, z)
+
+      # Load keypoints
+      keypoints_3d = pp_keypoint_parser.get_keypoints(PATH + 'car_models_obj/{0}.pp'.format(car_name))
+      keypoints_3d = np.vstack([keypoints_3d, [x, y, z]])  # Add center as a keypoint
+      keypoints_2d = project_vertices(keypoints_3d, yaw, pitch, roll, x, y, z)
+      coco_keypoints = []
+      for p in keypoints_2d:
+        coco_keypoints.append(p[0])
+        coco_keypoints.append(p[1])
+        coco_keypoints.append(2)
 
       annotation = {
         'image_id': idx,
@@ -111,7 +138,9 @@ def get_images_and_annotations(df):
         'roll': roll,
         'x': x,
         'y': y,
-        'z': z
+        'z': z,
+        'num_keypoints': 13,
+        'keypoints': coco_keypoints
       }
 
       if DEBUG:
@@ -120,12 +149,13 @@ def get_images_and_annotations(df):
         overlay = np.zeros_like(image)
         draw_obj(overlay, vertices, triangles)
         draw_bbox(overlay, bbox)
+        draw_points(overlay, keypoints_2d)
 
         alpha = .5
         image = np.array(image)
         cv2.addWeighted(overlay, alpha, image, 1 - alpha, 0, image)
 
-        image = cv2.resize(image, (384, 384))
+        image = cv2.resize(image, (1024, 1024))
         cv2.imshow('image', image)
         cv2.waitKey()
 
@@ -135,7 +165,7 @@ def get_images_and_annotations(df):
   return images, annotations
 
 if __name__ == '__main__':
-  DEBUG = True
+  DEBUG = False
 
   PATH = '/workspace/code/pku-autonomous-driving/data/'
 
