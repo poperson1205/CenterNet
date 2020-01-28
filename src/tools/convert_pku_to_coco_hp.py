@@ -119,7 +119,7 @@ def get_images_and_annotations(df):
 
       # Load keypoints
       keypoints_3d = pp_keypoint_parser.get_keypoints(PATH + 'car_models_obj/{0}.pp'.format(car_name))
-      keypoints_3d = np.vstack([keypoints_3d, [x, y, z]])  # Add center as a keypoint
+      keypoints_3d = np.vstack([keypoints_3d, [0.0, 0.0, 0.0]])  # Add center as a keypoint
       keypoints_2d = project_vertices(keypoints_3d, yaw, pitch, roll, x, y, z)
       coco_keypoints = []
       for p in keypoints_2d:
