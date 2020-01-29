@@ -6,6 +6,24 @@ import numpy as np
 import cv2
 from .ddd_utils import compute_box_3d, project_to_image, draw_box_3d, compute_box_3d_pku
 
+import xml.etree.ElementTree as ET
+import numpy as np
+import math
+
+def get_keypoints(path):
+    points = []
+
+    # Parse pp file
+    tree = ET.parse(path)
+    root = tree.getroot()
+    for point_node in root.findall('point'):
+        x = float(point_node.get('x'))
+        y = float(point_node.get('y'))
+        z = float(point_node.get('z'))
+        points.append((x, y, z))
+
+    return np.array(points)
+
 class Debugger(object):
   def __init__(self, ipynb=False, theme='black', 
                num_classes=-1, dataset=None, down_ratio=4):
@@ -203,7 +221,7 @@ class Debugger(object):
       cv2.putText(self.imgs[img_id], txt, (bbox[0], bbox[1] - 2), 
                   font, 0.5, (0, 0, 0), thickness=1, lineType=cv2.LINE_AA)
 
-  def add_coco_hp(self, points, img_id='default'): 
+  def add_coco_hp(self, points, calib, img_id='default'): 
     points = np.array(points, dtype=np.int32).reshape(self.num_joints, 2)
     for j in range(self.num_joints):
       cv2.circle(self.imgs[img_id],
@@ -213,6 +231,23 @@ class Debugger(object):
         cv2.line(self.imgs[img_id], (points[e[0], 0], points[e[0], 1]),
                       (points[e[1], 0], points[e[1], 1]), self.ec[j], 2,
                       lineType=cv2.LINE_AA)
+
+    # Compute 6D pose from points
+    obj_points = get_keypoints('/workspace/code/pku-autonomous-driving/data/car_models_obj/mazida-6-2015.pp')
+    obj_points = np.vstack((obj_points, np.array([[0.0, 0.0, 0.0]])))
+    # _, rvec, tvec = cv2.solvePnP(obj_points, points[:12].astype(np.float64), calib[:,:3], np.zeros((4,1), dtype=np.float64), flags=cv2.SOLVEPNP_ITERATIVE)
+    _, rvec, tvec, _ = cv2.solvePnPRansac(obj_points, points.astype(np.float64), calib[:,:3], np.zeros((4,1), dtype=np.float64), flags=cv2.SOLVEPNP_EPNP)
+    rmat, _ = cv2.Rodrigues(rvec)
+    cam_pos = -np.matrix(rmat).T * np.matrix(tvec)
+    P = np.hstack((rmat, tvec))
+    euler_angles_radians = -cv2.decomposeProjectionMatrix(P)[6] / 180.0 * math.pi
+    yaw = euler_angles_radians[0]
+    pitch = euler_angles_radians[1]
+    roll = euler_angles_radians[2]
+
+    box_3d = compute_box_3d_pku(tvec[0][0], tvec[1][0], tvec[2][0], -yaw, -pitch, -roll)
+    box_2d = project_to_image(box_3d, calib)
+    draw_box_3d(self.imgs[img_id], box_2d)
 
   def add_pku(self, pose, calib, img_id='default'):
     box_3d = compute_box_3d_pku(pose[3], pose[4], pose[5], pose[0], pose[1], pose[2])

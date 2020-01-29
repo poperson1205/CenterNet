@@ -83,7 +83,7 @@ class MultiPoseDetector(BaseDetector):
   def debug(self, debugger, images, dets, output, scale=1):
     dets = dets.detach().cpu().numpy().copy()
     dets[:, :, :4] *= self.opt.down_ratio
-    dets[:, :, 5:39] *= self.opt.down_ratio
+    dets[:, :, 5:31] *= self.opt.down_ratio
     img = images[0].detach().cpu().numpy().transpose(1, 2, 0)
     img = np.clip(((
       img * self.std + self.mean) * 255.), 0, 255).astype(np.uint8)
@@ -95,9 +95,12 @@ class MultiPoseDetector(BaseDetector):
       debugger.add_blend_img(img, pred, 'pred_hmhp')
   
   def show_results(self, debugger, image, results):
+    calib = np.array([[2304.5479, 0, 1686.2379, 0.0],
+                      [0, 2305.8757, 1354.9849, 0.0],
+                      [0, 0, 1., 0.0]], dtype=np.float32)
     debugger.add_img(image, img_id='multi_pose')
     for bbox in results[1]:
       if bbox[4] > self.opt.vis_thresh:
         debugger.add_coco_bbox(bbox[:4], 0, bbox[4], img_id='multi_pose')
-        debugger.add_coco_hp(bbox[5:39], img_id='multi_pose')
+        debugger.add_coco_hp(bbox[5:31], calib, img_id='multi_pose')
     debugger.show_all_imgs(pause=self.pause)
