@@ -8,14 +8,20 @@ import os
 import cv2
 import numpy as np
 import pandas as pd
+import math
 
 from opts import opts
 from datasets.dataset_factory import dataset_factory
 from detectors.detector_factory import detector_factory
+from tools.pp_keypoint_parser import get_keypoints
 
 image_ext = ['jpg', 'jpeg', 'png', 'webp']
 video_ext = ['mp4', 'mov', 'avi', 'mkv']
 time_stats = ['tot', 'load', 'pre', 'net', 'dec', 'post', 'merge']
+
+calib = np.array([[2304.5479, 0, 1686.2379, 0.0],
+                  [0, 2305.8757, 1354.9849, 0.0],
+                  [0, 0, 1., 0.0]], dtype=np.float32)
 
 def submit(opt):
   os.environ['CUDA_VISIBLE_DEVICES'] = opt.gpus_str
@@ -61,10 +67,24 @@ def submit(opt):
       prediction_string = ''
       for cat in dets:
           for i in range(len(dets[cat])):
-              score = dets[cat][i, 4]
-              pose = dets[cat][i, 5:11]
+              score = np.array(dets[cat][i][4])
+              points = np.array(dets[cat][i][5:31])
+              points = np.reshape(points, (-1, 2))
               if score > opt.vis_thresh:
-                prediction_string += '{} {} {} {} {} {} {} '.format(pose[0], pose[1], pose[2], pose[3], pose[4], pose[5], score)
+                # Compute 6D pose from points
+                obj_points = get_keypoints('/workspace/code/pku-autonomous-driving/data/car_models_obj/mazida-6-2015.pp')
+                obj_points = np.vstack((obj_points, np.array([[0.0, 0.0, 0.0]])))
+                # _, rvec, tvec = cv2.solvePnP(obj_points, points[:12].astype(np.float64), calib[:,:3], np.zeros((4,1), dtype=np.float64), flags=cv2.SOLVEPNP_ITERATIVE)
+                _, rvec, tvec, _ = cv2.solvePnPRansac(obj_points, points.astype(np.float64), calib[:,:3], np.zeros((4,1), dtype=np.float64), flags=cv2.SOLVEPNP_EPNP)
+                rmat, _ = cv2.Rodrigues(rvec)
+                cam_pos = -np.matrix(rmat).T * np.matrix(tvec)
+                P = np.hstack((rmat, tvec))
+                euler_angles_radians = -cv2.decomposeProjectionMatrix(P)[6] / 180.0 * math.pi
+                yaw = euler_angles_radians[0]
+                pitch = euler_angles_radians[1]
+                roll = euler_angles_radians[2]
+
+                prediction_string += '{} {} {} {} {} {} {} '.format(-yaw, -pitch, -roll, tvec[0][0], tvec[1][0], tvec[2][0], score)
       prediction_string = prediction_string.strip()
 
       # # Blind guess
